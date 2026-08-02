@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Photo Trier — tri de photos par raccourcis clavier (AZERTY Mac)
-Dépendance : pip install Pillow
+Photo Trier — sort photos with keyboard shortcuts (AZERTY Mac)
+Dependency: pip install Pillow
 
-Lancez avec : python trier.py
+Run with: python trier.py
 """
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from pathlib import Path
 try:
     from PIL import Image, ImageTk, ExifTags
 except ImportError:
-    print("Pillow requis :  pip install Pillow", file=sys.stderr)
+    print("Pillow is required: pip install Pillow", file=sys.stderr)
     sys.exit(1)
 
 import tkinter as tk
@@ -27,10 +27,10 @@ from tkinter import messagebox, simpledialog
 
 HistoryEntry = tuple[Path, Path, int, str | None, int, str | None]
 
-# ── configuration ─────────────────────────────────────────────────────────────
-# Touches de la rangée des chiffres sur AZERTY Mac (non‑shifté)
+# ── configuration ────────────────────────────────────────────────────────────
+# Number-row keys on an AZERTY Mac keyboard (unshifted)
 KEYS  = ["&", "é", '"', "'", "(", "§", "è", "!", "ç", "à", ")"]
-INBOX = "à trier"   # sous-dossier source (créé automatiquement)
+INBOX = "à trier"   # source subfolder (created automatically)
 KEYMAP_FILE = ".photo_trier_keys.json"
 
 IMAGE_EXTS = {
@@ -49,7 +49,7 @@ EXTS = IMAGE_EXTS | VIDEO_EXTS
 BG       = "#111111"
 PANEL    = "#181818"
 CARD     = "#222222"
-CARD_HL  = "#1a3355"   # carte mise en avant (dernier dossier utilisé)
+CARD_HL  = "#1a3355"   # highlighted card (last folder used)
 BORDER   = "#2d2d2d"
 TXT      = "#e2e2e2"
 DIM      = "#555555"
@@ -60,9 +60,9 @@ BADGE_HL = "#1d4ed8"
 GOLD     = "#d4a72c"
 
 
-# ── utilitaires ───────────────────────────────────────────────────────────────
+# ── utilities ─────────────────────────────────────────────────────────────────
 def _auto_rotate(img: Image.Image) -> Image.Image:
-    """Corrige l'orientation EXIF."""
+    """Fix EXIF orientation."""
     try:
         exif = img._getexif()  # type: ignore[attr-defined]
         if not exif:
@@ -79,7 +79,7 @@ def _auto_rotate(img: Image.Image) -> Image.Image:
 
 
 def _safe_dest(p: Path) -> Path:
-    """Retourne p, ou p_1, p_2 … si le fichier existe déjà."""
+    """Return p, or p_1, p_2 … if the file already exists."""
     if not p.exists():
         return p
     n = 1
@@ -91,7 +91,7 @@ def _safe_dest(p: Path) -> Path:
 
 
 def _cache_key(path: Path) -> str:
-    """Clé de cache stable basée sur le chemin et les métadonnées du fichier."""
+    """Stable cache key based on the file's path and metadata."""
     stat = path.stat()
     safe_name = "".join(ch if ch.isalnum() else "_" for ch in path.stem)[:40] or "media"
     return f"{safe_name}_{stat.st_size}_{int(stat.st_mtime)}"
@@ -106,7 +106,7 @@ class App(tk.Tk):
         self.geometry("1200x740")
         self.minsize(860, 560)
 
-        # ── état ─────────────────────────────────────────────────────────────
+        # ── state ────────────────────────────────────────────────────────────
         self.base    = Path(__file__).parent / INBOX
         self.base.mkdir(exist_ok=True)
         self.keymap_file = Path(__file__).parent / KEYMAP_FILE
@@ -115,13 +115,13 @@ class App(tk.Tk):
 
         self.photos:  list[Path]              = []
         self.idx:     int                     = 0
-        self.key_map: dict[str, str]          = {}   # char → nom de dossier
-        self.history: list[HistoryEntry]      = []   # état complet pour annuler
-        self.last:    str | None              = None  # dernier dossier utilisé
-        self.streak:  int                     = 0    # photos consécutives dans last
-        self.locked:  str | None              = None  # dossier verrouillé pour tri en rafale
+        self.key_map: dict[str, str]          = {}   # char → folder name
+        self.history: list[HistoryEntry]      = []   # full state, used to undo
+        self.last:    str | None              = None  # last folder used
+        self.streak:  int                     = 0    # consecutive photos sorted into `last`
+        self.locked:  str | None              = None  # folder locked for batch sorting
 
-        self._img_ref = None   # empêche le GC de libérer le PhotoImage
+        self._img_ref = None   # keeps the PhotoImage alive (prevents GC)
         self._video_after_id: str | None      = None
         self._video_proc: subprocess.Popen | None = None
         self._audio_proc: subprocess.Popen | None = None
@@ -134,11 +134,11 @@ class App(tk.Tk):
         self._video_started_at                = 0.0
         self.video_muted                      = True
 
-        # ── construction de l'interface ───────────────────────────────────────
+        # ── build the interface ─────────────────────────────────────────────
         self._build_panel()
         self._build_main()
 
-        # ── raccourcis globaux ────────────────────────────────────────────────
+        # ── global shortcuts ────────────────────────────────────────────────
         self.bind("<KeyPress>",  self._on_key)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.focus_set()
@@ -146,7 +146,7 @@ class App(tk.Tk):
         self._scan()
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # PANNEAU GAUCHE
+    # LEFT PANEL
     # ═══════════════════════════════════════════════════════════════════════════
     def _build_panel(self):
         self.panel = tk.Frame(self, bg=PANEL, width=220)
@@ -162,11 +162,11 @@ class App(tk.Tk):
         self.cards_frame = tk.Frame(self.panel, bg=PANEL)
         self.cards_frame.pack(fill="x", padx=6)
 
-        # séparateur
+        # separator
         tk.Frame(self.panel, bg=BORDER, height=1).pack(
             fill="x", padx=12, pady=(12, 8))
 
-        # aide raccourcis
+        # shortcut legend
         for key, label in [("N", "Nouveau dossier"),
                             ("⎵", "Répéter dernier"),
                             ("⇥", "Verrouiller / retirer"),
@@ -181,7 +181,7 @@ class App(tk.Tk):
             tk.Label(row, text=label, bg=PANEL, fg=DIM,
                      font=("Helvetica Neue", 10), anchor="w").pack(side="left")
 
-        # pousse le label stats en bas
+        # push the stats label to the bottom
         tk.Frame(self.panel, bg=PANEL).pack(fill="both", expand=True)
 
         self.lbl_stats = tk.Label(
@@ -195,7 +195,7 @@ class App(tk.Tk):
         self._cards: dict[str, dict] = {}  # folder → widgets
 
     def _rebuild_cards(self):
-        """Recrée les cartes de dossiers."""
+        """Recreate the folder cards."""
         for w in self.cards_frame.winfo_children():
             w.destroy()
         self._cards.clear()
@@ -229,7 +229,7 @@ class App(tk.Tk):
                                   font=("Helvetica Neue", 10, "bold"), padx=8)
             streak_lbl.pack(side="right", pady=5)
 
-            # click aussi (en complément des touches)
+            # also clickable (in addition to key shortcuts)
             for w in (card, badge, name, streak_lbl):
                 w.bind("<Button-1>", lambda _e, f=folder: self._sort(f))
 
@@ -238,7 +238,7 @@ class App(tk.Tk):
             )
 
     def _refresh_cards(self, active: str | None = None):
-        """Met à jour la mise en évidence des cartes."""
+        """Update the card highlighting."""
         for folder, ww in self._cards.items():
             hi  = (folder == active)
             bg  = CARD_HL if hi else CARD
@@ -253,7 +253,7 @@ class App(tk.Tk):
             )
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # ZONE PHOTO (droite)
+    # PHOTO AREA (right side)
     # ═══════════════════════════════════════════════════════════════════════════
     def _build_main(self):
         right = tk.Frame(self, bg=BG)
@@ -263,7 +263,7 @@ class App(tk.Tk):
         self.canvas.pack(fill="both", expand=True)
         self.canvas.bind("<Configure>", lambda _: self._draw())
 
-        # barre de statut
+        # status bar
         bar = tk.Frame(right, bg=PANEL, height=44)
         bar.pack(fill="x", side="bottom")
         bar.pack_propagate(False)
@@ -289,7 +289,7 @@ class App(tk.Tk):
         self.lbl_progress.pack(side="right", fill="y")
 
     def _load_saved_bindings(self) -> dict[str, str]:
-        """Charge les associations persistées dossier -> touche."""
+        """Load the persisted folder -> key bindings."""
         if not self.keymap_file.exists():
             return {}
         try:
@@ -310,7 +310,7 @@ class App(tk.Tk):
         return cleaned
 
     def _save_bindings(self, folder_to_key: dict[str, str]):
-        """Persiste les associations dossier -> touche."""
+        """Persist the folder -> key bindings."""
         payload = {folder: folder_to_key[folder] for folder in sorted(folder_to_key)}
         self.keymap_file.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),
@@ -318,7 +318,7 @@ class App(tk.Tk):
         )
 
     def _assign_keys(self, dirs: list[str]) -> dict[str, str]:
-        """Préserve les anciennes touches et attribue une touche seulement aux nouveaux dossiers."""
+        """Keep existing key bindings and only assign a key to new folders."""
         saved = self._load_saved_bindings()
         folder_to_key = {
             folder: key
@@ -337,10 +337,10 @@ class App(tk.Tk):
         return {key: folder for folder, key in folder_to_key.items()}
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # CHARGEMENT DES DONNÉES
+    # DATA LOADING
     # ═══════════════════════════════════════════════════════════════════════════
     def _scan(self):
-        """Relit le dossier source : photos + sous-dossiers."""
+        """Rescan the source folder: photos + subfolders."""
         dirs = sorted(
             d.name for d in self.base.iterdir()
             if d.is_dir() and not d.name.startswith(".")
@@ -359,10 +359,10 @@ class App(tk.Tk):
         self._update_bar()
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # AFFICHAGE
+    # DISPLAY
     # ═══════════════════════════════════════════════════════════════════════════
     def _draw(self):
-        """Affiche la photo courante sur le canvas."""
+        """Draw the current photo on the canvas."""
         self.canvas.delete("all")
         W = self.canvas.winfo_width()  or 940
         H = self.canvas.winfo_height() or 640
@@ -424,7 +424,7 @@ class App(tk.Tk):
             )
 
     def _get_video_preview_path(self, path: Path) -> Path | None:
-        """Extrait une image d'aperçu vidéo via ffmpeg et la met en cache."""
+        """Extract a video preview frame via ffmpeg and cache it."""
         preview_path = self.video_cache_dir / f"{_cache_key(path)}.jpg"
         if preview_path.exists():
             return preview_path
@@ -445,7 +445,7 @@ class App(tk.Tk):
         return preview_path if result.returncode == 0 and preview_path.exists() else None
 
     def _get_video_info(self, path: Path) -> tuple[int, int, float] | None:
-        """Retourne largeur, hauteur et fps vidéo."""
+        """Return video width, height, and fps."""
         cmd = [
             "ffprobe",
             "-v", "error",
@@ -472,7 +472,7 @@ class App(tk.Tk):
             return None
 
     def _start_audio(self):
-        """Démarre le son de la vidéo en cours, coupé par défaut sinon."""
+        """Start audio playback for the current video (muted by default)."""
         if self.video_muted or not self._current_video_path:
             return
         self._stop_audio()
@@ -495,7 +495,7 @@ class App(tk.Tk):
             self._audio_proc = None
 
     def _stop_audio(self):
-        """Arrête le son en cours."""
+        """Stop the current audio playback."""
         if not self._audio_proc:
             return
         try:
@@ -509,7 +509,7 @@ class App(tk.Tk):
         self._audio_proc = None
 
     def _stop_video_playback(self):
-        """Arrête proprement la lecture vidéo."""
+        """Cleanly stop video playback."""
         self._stop_audio()
         self._video_generation += 1
         if self._video_after_id:
@@ -535,7 +535,7 @@ class App(tk.Tk):
         self._current_video_size = None
 
     def _video_reader(self, path: Path, size: tuple[int, int], generation: int):
-        """Lit les frames RGB depuis ffmpeg."""
+        """Read RGB frames from ffmpeg."""
         width, height = size
         frame_bytes = width * height * 3
         cmd = [
@@ -572,7 +572,7 @@ class App(tk.Tk):
                 self._video_proc = None
 
     def _pump_video_frame(self, fps: float):
-        """Met à jour l'image vidéo affichée."""
+        """Update the displayed video frame."""
         interval = max(15, int(1000 / fps))
         payload = None
         size = self._video_frame_size
@@ -607,7 +607,7 @@ class App(tk.Tk):
             self._video_after_id = None
 
     def _draw_video_player(self, path: Path, width: int, height: int) -> bool:
-        """Affiche une vidéo en lecture automatique, muette par défaut."""
+        """Play a video automatically, muted by default."""
         info = self._get_video_info(path)
         if not info:
             return self._draw_video_preview(path, width, height)
@@ -637,7 +637,7 @@ class App(tk.Tk):
         return True
 
     def _draw_video_preview(self, path: Path, width: int, height: int) -> bool:
-        """Affiche une miniature vidéo si la lecture temps réel n'est pas disponible."""
+        """Show a video thumbnail when real-time playback isn't available."""
         preview_path = self._get_video_preview_path(path)
         if not preview_path:
             return False
@@ -657,12 +657,12 @@ class App(tk.Tk):
             return False
 
     def _update_bar(self):
-        """Met à jour la barre de statut en bas."""
+        """Update the bottom status bar."""
         n = len(self.photos)
         total = n + len(self.history)
         done = len(self.history)
 
-        # progression
+        # progress
         pos = min(self.idx + 1, n) if n else 0
         self.lbl_progress.configure(text=f"{done} / {total}" if total else "—")
         self.progress_canvas.delete("all")
@@ -677,11 +677,11 @@ class App(tk.Tk):
                 0, 0, fill_w, bar_h, fill=GREEN, outline=GREEN
             )
 
-        # nom du fichier
+        # file name
         fname = self.photos[self.idx].name if self.idx < n else ""
         self.lbl_filename.configure(text=fname)
 
-        # dernière action + hint batch
+        # last action + batch-mode hint
         if self.last:
             s = f"  ×{self.streak}" if self.streak > 1 else ""
             mode = f"    ⇥ verrouillé sur {self.locked}" if self.locked else ""
@@ -691,14 +691,14 @@ class App(tk.Tk):
         else:
             self.lbl_action.configure(text="")
 
-        # stats panneau gauche
+        # left panel stats
         stats = [f"{n} restant(s)", f"{done} trié(s) cette session"]
         if n:
             stats.append(f"position {pos} / {n}")
         self.lbl_stats.configure(text="\n".join(stats))
 
     def _prompt_new_folder(self):
-        """Demande un nom et crée un nouveau sous-dossier dans la boîte de tri."""
+        """Prompt for a name and create a new subfolder in the inbox."""
         name = simpledialog.askstring(
             "Nouveau dossier",
             "Nom du sous-dossier :",
@@ -739,7 +739,7 @@ class App(tk.Tk):
     # ACTIONS
     # ═══════════════════════════════════════════════════════════════════════════
     def _sort(self, folder: str):
-        """Déplace la photo courante dans folder."""
+        """Move the current photo into folder."""
         if not self.photos or self.idx >= len(self.photos):
             return
 
@@ -749,11 +749,11 @@ class App(tk.Tk):
         shutil.move(str(src), str(dst))
         self.history.append((src, dst, self.idx, self.last, self.streak, self.locked))
 
-        # mise à jour du streak
+        # update the streak
         self.streak = self.streak + 1 if folder == self.last else 1
         self.last   = folder
 
-        # retire la photo de la liste, ajuste l'index
+        # remove the photo from the list, adjust the index
         self.photos.pop(self.idx)
         if self.idx >= len(self.photos):
             self.idx = max(0, len(self.photos) - 1)
@@ -763,7 +763,7 @@ class App(tk.Tk):
         self._update_bar()
 
     def _skip(self):
-        """Passe à la photo suivante sans trier."""
+        """Skip to the next photo without sorting."""
         if len(self.photos) < 2:
             return
         self.idx = (self.idx + 1) % len(self.photos)
@@ -771,7 +771,7 @@ class App(tk.Tk):
         self._update_bar()
 
     def _undo(self):
-        """Annule le dernier déplacement."""
+        """Undo the last move."""
         if not self.history:
             return
         src, dst, prev_idx, prev_last, prev_streak, prev_locked = self.history.pop()
@@ -788,7 +788,7 @@ class App(tk.Tk):
         self._update_bar()
 
     def _toggle_lock(self):
-        """Verrouille/déverrouille le dernier dossier utilisé pour le tri en rafale."""
+        """Lock/unlock the last used folder for batch sorting."""
         if not self.last:
             return
         self.locked = None if self.locked == self.last else self.last
@@ -796,7 +796,7 @@ class App(tk.Tk):
         self._update_bar()
 
     def _toggle_mute(self):
-        """Active ou coupe le son de la vidéo courante."""
+        """Toggle audio for the current video."""
         self.video_muted = not self.video_muted
         if self._current_video_path:
             if self.video_muted:
@@ -806,51 +806,51 @@ class App(tk.Tk):
             self._draw()
 
     def _on_close(self):
-        """Nettoie les processus avant fermeture."""
+        """Clean up running processes before closing."""
         self._stop_video_playback()
         self.destroy()
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # CLAVIER
+    # KEYBOARD
     # ═══════════════════════════════════════════════════════════════════════════
     def _on_key(self, e: tk.Event):
         ch, ks = e.char, e.keysym
 
         if ks == "space":
-            # ⎵  → répète le dernier dossier (optimisation batch)
+            # ⎵  → repeat the last folder (batch shortcut)
             target = self.locked or self.last
             if target:
                 self._sort(target)
 
         elif ks == "Tab":
-            # ⇥ → verrouille ou retire le verrou sur le dernier dossier
+            # ⇥ → lock or unlock the last used folder
             self._toggle_lock()
 
         elif ch.lower() == "m":
-            # M → active / coupe le son de la vidéo
+            # M → toggle video audio
             self._toggle_mute()
 
         elif ch.lower() == "n":
-            # N → crée un nouveau sous-dossier
+            # N → create a new subfolder
             self._prompt_new_folder()
 
         elif ks in ("Right", "Return"):
-            # → ou Entrée → passe sans trier
+            # → or Enter → skip without sorting
             self._skip()
 
         elif ks in ("BackSpace", "Delete"):
-            # ⌫ → annule le dernier déplacement
+            # ⌫ → undo the last move
             self._undo()
 
         elif ks == "Escape":
-            # ⎋  → recharge le dossier (après avoir ajouté des sous-dossiers)
+            # ⎋  → reload the folder (after adding subfolders)
             self._scan()
 
         elif ch in self.key_map:
-            # touche AZERTY → trie dans le dossier associé
+            # AZERTY key → sort into the associated folder
             self._sort(self.key_map[ch])
 
 
-# ── point d'entrée ────────────────────────────────────────────────────────────
+# ── entry point ─────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     App().mainloop()

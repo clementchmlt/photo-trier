@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local runtime data
+à trier/
+.photo_trier_keys.json

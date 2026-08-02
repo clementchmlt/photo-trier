@@ -1,19 +1,21 @@
 # Photo Trier
 
-Application desktop minimaliste pour trier rapidement des photos et vidéos avec des raccourcis clavier sur macOS.
+Minimalist desktop app to quickly sort photos and videos with keyboard
+shortcuts on macOS. Personal tool, built for an AZERTY Mac keyboard — the
+interface labels are in French.
 
-## Fonctionnalités
+## Features
 
-- Détecte automatiquement les fichiers à classer dans le dossier `à trier/`
-- Associe les sous-dossiers à des touches AZERTY Mac
-- Déplace le média courant vers le bon dossier avec une seule touche
-- Verrouille le dernier dossier utilisé pour les séries de photos
-- Lit les vidéos principales dans l'application
-- Son désactivé par défaut, activable à la demande
-- Barre de progression pendant le tri
-- Persistance des associations touche → dossier
+- Automatically detects files to sort in the `à trier/` ("to sort") folder
+- Maps subfolders to AZERTY Mac keys
+- Moves the current media file to the right folder with a single keystroke
+- Locks the last used folder for sorting a run of similar photos
+- Plays videos inline in the app
+- Sound off by default, can be toggled on
+- Progress bar while sorting
+- Persists key → folder associations between runs
 
-## Dépendances
+## Dependencies
 
 - Python 3.11+
 - [Pillow](https://python-pillow.org/)
@@ -21,50 +23,57 @@ Application desktop minimaliste pour trier rapidement des photos et vidéos avec
 - `ffplay`
 - `ffprobe`
 
-Sur macOS avec Homebrew :
+On macOS with Homebrew:
 
 ```bash
 brew install ffmpeg
 python3 -m pip install -r requirements.txt
 ```
 
-## Lancer l'application
+## Running the app
 
 ```bash
 python3 trier.py
 ```
 
-Au premier lancement, l'application crée automatiquement le dossier `à trier/` si besoin.
+On first launch, the app automatically creates the `à trier/` folder if it
+doesn't exist yet.
 
-## Utilisation
+## Usage
 
-1. Déposer les photos et vidéos à trier dans `à trier/`
-2. Créer dans `à trier/` les sous-dossiers de destination
-3. Lancer l'application
-4. Utiliser les raccourcis affichés dans la colonne de gauche
+1. Drop the photos and videos to sort into `à trier/`
+2. Create the destination subfolders inside `à trier/`
+3. Launch the app
+4. Use the shortcuts shown in the left-hand column
 
-### Raccourcis
+### Shortcuts
 
-- `& é " ' ( § è ! ç à )` : envoyer le média dans le dossier associé
-- `Espace` : répéter le dernier dossier
-- `Tab` : verrouiller ou retirer le verrou sur le dernier dossier
-- `M` : activer ou couper le son de la vidéo courante
-- `N` : créer un nouveau sous-dossier
-- `Flèche droite` ou `Entrée` : passer au média suivant
-- `Supprimer` : annuler le dernier déplacement
-- `Échap` : recharger les dossiers et médias
+- `& é " ' ( § è ! ç à )`: send the current media to the associated folder
+- `Space`: repeat the last folder
+- `Tab`: lock or unlock the last used folder
+- `M`: toggle sound for the current video
+- `N`: create a new subfolder
+- `Right arrow` or `Enter`: skip to the next media file
+- `Delete`: undo the last move
+- `Esc`: reload folders and media
 
-## Formats pris en charge
+## Supported formats
 
-L'application gère le tri des formats image et vidéo courants, dont :
+The app sorts common image and video formats, including:
 
-- Images : `jpg`, `jpeg`, `png`, `gif`, `bmp`, `tiff`, `webp`, `heic`, `heif`, `avif`
-- Vidéos : `mp4`, `mov`, `m4v`, `avi`, `mkv`, `webm`, `mpeg`, `mpg`, `mts`, `m2ts`, `3gp`
+- Images: `jpg`, `jpeg`, `png`, `gif`, `bmp`, `tiff`, `webp`, `heic`, `heif`, `avif`
+- Videos: `mp4`, `mov`, `m4v`, `avi`, `mkv`, `webm`, `mpeg`, `mpg`, `mts`, `m2ts`, `3gp`
 
-Le tri repose sur l'extension du fichier. L'aperçu dépend des capacités de Pillow pour les images et de `ffmpeg` pour les vidéos.
+Sorting is based on the file extension. Previews depend on Pillow for images
+and `ffmpeg` for videos.
 
 ## Notes
 
-- Le dossier `à trier/` est ignoré par Git pour éviter de publier des médias personnels.
-- Les associations de touches sont enregistrées dans `.photo_trier_keys.json`, également ignoré par Git.
-- L'application est pensée pour un usage personnel local et ne dépend pas d'un service distant.
+- The `à trier/` folder is excluded from Git to avoid publishing personal
+  media.
+- Key bindings are saved to `.photo_trier_keys.json`, also excluded from Git.
+- Built for local personal use; it doesn't depend on any remote service.
+
+## License
+
+Personal side project, shared as-is under the [MIT License](LICENSE).
